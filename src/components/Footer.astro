@@ -1,0 +1,63 @@
+---
+const links = [
+  {
+    name: "LinkedIn",
+    href: "https://www.linkedin.com/in/youssef-qteishat/",
+    icon: "fa-brands fa-linkedin-in fa-fw",
+  },
+  {
+    name: "GitHub",
+    href: "https://github.com/youssef-qteishat",
+    icon: "fa-brands fa-github fa-fw",
+  },
+  {
+    name: "Email",
+    href: "mailto:youssef.qt1@gmail.com",
+    icon: "fa-solid fa-envelope fa-fw",
+  },
+];
+---
+
+<footer>
+  <nav>
+    {
+      links.map(({ name, href, icon }) => (
+        <a
+          href={href}
+          aria-label={name}
+          target={href.startsWith("http") ? "_blank" : undefined}
+          rel="noopener noreferrer"
+        >
+          <i class={icon} aria-hidden="true" />
+        </a>
+      ))
+    }
+  </nav>
+</footer>
+
+<style>
+  footer {
+    text-align: center;
+    padding: 1.5rem 0;
+    background-color: #010736;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+  }
+  nav {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+  }
+  nav a,
+  nav a:visited {
+    color: white;
+    font-size: 1.5rem; /* same 24px as the old PNGs */
+  }
+
+  nav a:hover,
+  nav a:active {
+    color: #8acff8;
+  }
+</style>

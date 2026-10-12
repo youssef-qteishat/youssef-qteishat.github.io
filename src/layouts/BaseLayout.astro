@@ -1,0 +1,21 @@
+---
+const { title = "Youssef Q" } = Astro.props;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/yq.ico" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <script
+      is:inline
+      src="https://kit.fontawesome.com/ef1a60ae1c.js"
+      crossorigin="anonymous"></script>
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>
