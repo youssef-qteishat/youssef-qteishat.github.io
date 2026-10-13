@@ -56,16 +56,22 @@ const featured = (
 
 <style>
   main {
-    max-width: 1000px;
-    margin: 0 auto 0 4rem;
-    padding: 1.5rem 1.5rem 6rem; /* bottom clears the fixed footer */
+    padding: 1.5rem 4rem 6rem; /* bottom clears the fixed footer */
     color: white;
   }
   .about {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 2rem;
-    margin-bottom: 2.5rem;
+    gap: 1rem;
+    max-width: 600px;
+    margin: 0 auto 2.5rem;
+  }
+  .about div {
+    width: 100%;
+  }
+  .about h2 {
+    text-align: center;
   }
   .about img {
     width: 200px;
