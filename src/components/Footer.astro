@@ -35,6 +35,34 @@ const links = [
   </nav>
 </footer>
 
+<script>
+  document.querySelectorAll<HTMLAnchorElement>("nav a").forEach((link) => {
+    const icon = link.querySelector("i");
+    if (!icon) return;
+
+    // Float while hovered or keyboard-focused
+    const start = () => icon.classList.add("fa-float");
+    const stop = () => icon.classList.remove("fa-float");
+    link.addEventListener("mouseenter", start);
+    link.addEventListener("mouseleave", stop);
+    link.addEventListener("focus", start);
+    link.addEventListener("blur", stop);
+
+    // Bounce once on click
+    link.addEventListener("click", () => {
+      icon.classList.remove("fa-float", "fa-bounce");
+      void icon.offsetWidth; // restart the animation if clicked repeatedly
+      icon.classList.add("fa-bounce");
+    });
+
+    // After the bounce, drop the class and resume floating if still hovered
+    icon.addEventListener("animationend", () => {
+      icon.classList.remove("fa-bounce");
+      if (link.matches(":hover, :focus-visible")) start();
+    });
+  });
+</script>
+
 <style>
   footer {
     text-align: center;
@@ -52,12 +80,16 @@ const links = [
   }
   nav a,
   nav a:visited {
-    color: white;
+    color: #fcf1d0;
     font-size: 1.5rem; /* same 24px as the old PNGs */
   }
 
   nav a:hover,
   nav a:active {
     color: #8acff8;
+  }
+
+  i.fa-bounce {
+    --fa-animation-iteration-count: 1;
   }
 </style>

@@ -1,9 +1,85 @@
 ---
+import { getCollection } from "astro:content";
+import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
+import ProjectCard from "../components/ProjectCard.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
+
+const featured = (
+  await getCollection("project", ({ data }) => data.featured)
+).sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
 ---
 
 <BaseLayout>
-  <h1>Astro</h1>
+  <Header />
+  <main>
+    <section class="about">
+      <img
+        src="/yq_linkedin_headshot%20copy.jpeg"
+        alt="Youssef Qteishat"
+        width="200"
+        height="200"
+      />
+      <div>
+        <h2>About Me</h2>
+        <p>
+          Hey, I'm Youssef. I'm a recent CS grad from UC Davis. My background
+          encompasses experience working with student organizations, startups,
+          and large-scale companies, as well as personal technical projects. My
+          expertise includes full-stack development with AI integration, cloud
+          infrastructure, DevOps engineering, and automation. Most recently I
+          built AislePal, a Scan & Go app for frictionless in-store grocery
+          shopping. Feel free to reach out!
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Featured Projects</h2>
+      <div class="row">
+        {
+          featured.map(({ id, data }) => (
+            <ProjectCard
+              title={data.title}
+              summary={data.summary}
+              thumbnail={data.thumbnail}
+              tags={data.tags}
+              href={`/projects/${id}`}
+            />
+          ))
+        }
+      </div>
+    </section>
+  </main>
   <Footer />
 </BaseLayout>
+
+<style>
+  main {
+    max-width: 1000px;
+    margin: 0 auto 0 4rem;
+    padding: 1.5rem 1.5rem 6rem; /* bottom clears the fixed footer */
+    color: white;
+  }
+  .about {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    margin-bottom: 2.5rem;
+  }
+  .about img {
+    width: 200px;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+  }
+  .row > :global(.card) {
+    flex: 0 1 300px;
+  }
+</style>
