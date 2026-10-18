@@ -13,7 +13,11 @@ export async function getStaticPaths() {
 }
 
 const { entry } = Astro.props;
-const { title, tags, youtubeId } = entry.data;
+const { title, tags, videoId, videoPlatform = "youtube", repoUrl } = entry.data;
+const embedUrls = {
+  youtube: "https://www.youtube-nocookie.com/embed/",
+  loom: "https://www.loom.com/embed/",
+};
 const { Content } = await render(entry);
 ---
 
@@ -25,9 +29,9 @@ const { Content } = await render(entry);
       {tags.map((tag) => <li>{tag}</li>)}
     </ul>
     {
-      youtubeId && (
+      videoId && (
         <iframe
-          src={`https://www.youtube-nocookie.com/embed/${youtubeId}`}
+          src={`${embedUrls[videoPlatform]}${videoId}`}
           title={title}
           allowfullscreen
           loading="lazy"
@@ -35,6 +39,16 @@ const { Content } = await render(entry);
       )
     }
     <Content />
+    {
+      repoUrl && (
+        <section>
+          <h3>GitHub</h3>
+          <a href={repoUrl} target="_blank" rel="noopener noreferrer">
+            {repoUrl.replace("https://github.com/", "")}
+          </a>
+        </section>
+      )
+    }
   </main>
   <Footer />
 </BaseLayout>
@@ -45,6 +59,17 @@ const { Content } = await render(entry);
     margin: 0 auto;
     padding: 1.5rem 1.5rem 6rem; /* bottom clears the fixed footer */
     color: white;
+  }
+
+  main a {
+    color: #fcf1d0;
+  }
+
+  main a:hover,
+  main a:active,
+  main a:visited,
+  main a:focus-visible {
+    color: #8acff8;
   }
   h2 {
     margin: 0 0 0.75rem;

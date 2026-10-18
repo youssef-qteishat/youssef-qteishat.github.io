@@ -17,7 +17,8 @@ const project = defineCollection({
       date: z.coerce.date(),
       updatedDate: z.coerce.date().optional(),
       thumbnail: image().optional(),
-      youtubeId: z.string().optional(),
+      videoPlatform: z.enum(["youtube", "loom"]).optional(), // Default: YouTube
+      videoId: z.string().optional(),
       repoUrl: z.string().optional(),
       demoUrl: z.string().optional(),
       tags: z.array(z.string()),
