@@ -1,5 +1,6 @@
 ---
 const { title = "Youssef Q" } = Astro.props;
+import Sand from "../components/Sand.astro";
 ---
 
 <html lang="en">
@@ -22,6 +23,7 @@ const { title = "Youssef Q" } = Astro.props;
       crossorigin="anonymous"></script>
   </head>
   <body>
+    <Sand />
     <slot />
   </body>
 </html>

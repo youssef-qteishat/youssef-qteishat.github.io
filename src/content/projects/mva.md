@@ -3,7 +3,7 @@
       summary: "Generate timestamped section breakdowns and ask questions based on video content"
       date: 2025-06-15
       thumbnail: ../../thumbnails/mva.png
-      youtubeId: 1oRr4YsXtZ4
+      videoId: 1oRr4YsXtZ4
       repoUrl: https://github.com/tmabdull/multimodal-vid-analysis
       tags: ["Chatbot", "RAG"]
       featured: true

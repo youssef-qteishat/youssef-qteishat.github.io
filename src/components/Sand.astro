@@ -1,0 +1,141 @@
+<canvas id="sand"></canvas>
+
+<style>
+  canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
+    image-rendering: pixelated;
+    opacity: 0.5; /* keeps text readable */
+  }
+</style>
+
+<script>
+  const canvas = document.getElementById("sand") as HTMLCanvasElement;
+  const ctx = canvas.getContext("2d")!;
+  const SCALE = 3; // one grid cell = 3 CSS pixels
+  // Grid value = shade index (0 = empty)
+  const SHADES = ["", "#e8c07a", "#d9a35b", "#c98a45", "#f0d29a"];
+  const shade = () => 1 + Math.floor(Math.random() * (SHADES.length - 1));
+  const SPAWN_PER_FRAME = 0.6; // tune: higher = faster accumulation
+  const CLEAR_RADIUS = 14; // cells cleared per click
+  let W = 0,
+    H = 0;
+  let grid = new Uint8Array(0); // settled sand
+  let air: { x: number; y: number; vx: number; vy: number; c: number }[] = []; // grains in the wind
+  let t = 0;
+
+  function resize() {
+    const w = Math.ceil(innerWidth / SCALE);
+    const h = Math.ceil(innerHeight / SCALE);
+    if (w === W && h === H) return;
+    const next = new Uint8Array(w * h);
+    // keep the pile anchored to the bottom
+    for (let y = 0; y < Math.min(H, h); y++)
+      for (let x = 0; x < Math.min(W, w); x++)
+        next[(h - 1 - y) * w + x] = grid[(H - 1 - y) * W + x];
+    W = w;
+    H = h;
+    grid = next;
+    canvas.width = W;
+    canvas.height = H;
+  }
+  resize();
+  addEventListener("resize", resize);
+
+  // The canvas ignores pointer events, so listen on the body
+  document.body.addEventListener("click", (e) => {
+    const cx = e.clientX / SCALE,
+      cy = e.clientY / SCALE;
+    for (
+      let y = Math.max(0, Math.floor(cy - CLEAR_RADIUS));
+      y < Math.min(H, cy + CLEAR_RADIUS);
+      y++
+    )
+      for (
+        let x = Math.max(0, Math.floor(cx - CLEAR_RADIUS));
+        x < Math.min(W, cx + CLEAR_RADIUS);
+        x++
+      ) {
+        const d = Math.hypot(x - cx, y - cy) / CLEAR_RADIUS;
+        if (d < 1 && Math.random() > d * d) grid[y * W + x] = 0; // ragged edge
+      }
+  });
+
+  function step() {
+    t++;
+    const gust = 1 + 0.5 * Math.sin(t / 120);
+
+    // Blow new grains in from the left edge
+    for (let n = SPAWN_PER_FRAME; n > 0; n--)
+      if (Math.random() < n)
+        air.push({
+          x: 0,
+          y: Math.random() * H * 0.8,
+          vx: 0.6 + Math.random() * 0.8,
+          vy: 0.05 + Math.random() * 0.15,
+          c: shade(),
+        });
+
+    // Move airborne grains; settle them when they land
+    air = air.filter((p) => {
+      p.x += p.vx * gust;
+      p.y += p.vy + Math.sin((p.x + t) / 15) * 0.1;
+      const x = Math.floor(p.x),
+        y = Math.floor(p.y);
+      if (x >= W) return false;
+      if (y < 0) return true;
+      if (y >= H - 1 || grid[(y + 1) * W + x]) {
+        if (!grid[Math.min(y, H - 1) * W + x])
+          grid[Math.min(y, H - 1) * W + x] = p.c;
+        return false;
+      }
+      return true;
+    });
+
+    // Settled sand falls and slides into piles
+    for (let y = H - 2; y >= 0; y--) {
+      for (let x = 0; x < W; x++) {
+        if (!grid[y * W + x]) continue;
+        const below = (y + 1) * W + x;
+        if (!grid[below]) {
+          grid[below] = grid[y * W + x];
+          grid[y * W + x] = 0;
+          continue;
+        }
+        // wind biases slides to the right
+        const dir = Math.random() < 0.7 ? 1 : -1;
+        const nx = x + dir;
+        if (nx >= 0 && nx < W && !grid[below + dir]) {
+          grid[below + dir] = grid[y * W + x];
+          grid[y * W + x] = 0;
+        }
+      }
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++) {
+        const c = grid[y * W + x];
+        if (!c) continue;
+        ctx.fillStyle = SHADES[c];
+        ctx.fillRect(x, y, 1, 1);
+      }
+    for (const p of air) {
+      ctx.fillStyle = SHADES[p.c];
+      ctx.fillRect(Math.floor(p.x), Math.floor(p.y), 1, 1);
+    }
+  }
+
+  function loop() {
+    step();
+    draw();
+    requestAnimationFrame(loop);
+  }
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) loop();
+</script>
