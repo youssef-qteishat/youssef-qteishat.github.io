@@ -1,4 +1,4 @@
-<canvas id="sand"></canvas>
+<canvas id="sand" aria-hidden="true"></canvas>
 
 <style>
   canvas {
@@ -8,134 +8,141 @@
     height: 100%;
     z-index: -1;
     pointer-events: none;
-    image-rendering: pixelated;
-    opacity: 0.5; /* keeps text readable */
+    opacity: 0.6; /* keeps text readable */
   }
 </style>
 
 <script>
+  // Based on https://cruip.com/how-to-create-a-beautiful-particle-animation-with-html-canvas/
   const canvas = document.getElementById("sand") as HTMLCanvasElement;
   const ctx = canvas.getContext("2d")!;
-  const SCALE = 3; // one grid cell = 3 CSS pixels
-  // Grid value = shade index (0 = empty)
-  const SHADES = ["", "#e8c07a", "#d9a35b", "#c98a45", "#f0d29a"];
-  const shade = () => 1 + Math.floor(Math.random() * (SHADES.length - 1));
-  const SPAWN_PER_FRAME = 0.6; // tune: higher = faster accumulation
-  const CLEAR_RADIUS = 14; // cells cleared per click
-  let W = 0,
-    H = 0;
-  let grid = new Uint8Array(0); // settled sand
-  let air: { x: number; y: number; vx: number; vy: number; c: number }[] = []; // grains in the wind
-  let t = 0;
+  const SHADES = ["#e8c07a", "#d9a35b", "#c98a45", "#f0d29a"];
+  const STATICITY = 50; // higher = grains follow the cursor less
+  const EASE = 75; // higher = smoother cursor follow
+  const CLEAR_RADIUS = 100; // px affected by a click
+  const EDGE_FADE = 20; // px
+
+  type Grain = {
+    x: number;
+    y: number; // drift position
+    tx: number;
+    ty: number; // cursor offset
+    vx: number;
+    vy: number; // click burst velocity
+    dx: number;
+    dy: number; // wind drift
+    size: number;
+    alpha: number;
+    targetAlpha: number;
+    magnetism: number;
+    c: string;
+    dying: boolean;
+  };
+
+  let w = 0,
+    h = 0;
+  let grains: Grain[] = [];
+  const mouse = { x: 0, y: 0 };
+
+  function createGrain(atLeft = false): Grain {
+    return {
+      x: atLeft ? 0 : Math.random() * w,
+      y: Math.random() * h,
+      tx: 0,
+      ty: 0,
+      vx: 0,
+      vy: 0,
+      dx: 0.2 + Math.random() * 1.5, // wind drift
+      dy: (Math.random() - 0.5) * 0.2,
+      size: 1 + Math.floor(Math.random() * 2),
+      alpha: 0,
+      targetAlpha: 0.3 + Math.random() * 0.6,
+      magnetism: 0.1 + Math.random() * 4,
+      c: SHADES[Math.floor(Math.random() * SHADES.length)],
+      dying: false,
+    };
+  }
 
   function resize() {
-    const w = Math.ceil(innerWidth / SCALE);
-    const h = Math.ceil(innerHeight / SCALE);
-    if (w === W && h === H) return;
-    const next = new Uint8Array(w * h);
-    // keep the pile anchored to the bottom
-    for (let y = 0; y < Math.min(H, h); y++)
-      for (let x = 0; x < Math.min(W, w); x++)
-        next[(h - 1 - y) * w + x] = grid[(H - 1 - y) * W + x];
-    W = w;
-    H = h;
-    grid = next;
-    canvas.width = W;
-    canvas.height = H;
+    const dpr = devicePixelRatio || 1;
+    w = innerWidth;
+    h = innerHeight;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const quantity = Math.min(500, Math.round((w * h) / 2000)); // density
+    grains = Array.from({ length: quantity }, () => createGrain());
   }
-  resize();
-  addEventListener("resize", resize);
 
-  // The canvas ignores pointer events, so listen on the body
-  document.body.addEventListener("click", (e) => {
-    const cx = e.clientX / SCALE,
-      cy = e.clientY / SCALE;
-    for (
-      let y = Math.max(0, Math.floor(cy - CLEAR_RADIUS));
-      y < Math.min(H, cy + CLEAR_RADIUS);
-      y++
-    )
-      for (
-        let x = Math.max(0, Math.floor(cx - CLEAR_RADIUS));
-        x < Math.min(W, cx + CLEAR_RADIUS);
-        x++
-      ) {
-        const d = Math.hypot(x - cx, y - cy) / CLEAR_RADIUS;
-        if (d < 1 && Math.random() > d * d) grid[y * W + x] = 0; // ragged edge
-      }
-  });
-
-  function step() {
-    t++;
-    const gust = 1 + 0.5 * Math.sin(t / 120);
-
-    // Blow new grains in from the left edge
-    for (let n = SPAWN_PER_FRAME; n > 0; n--)
-      if (Math.random() < n)
-        air.push({
-          x: 0,
-          y: Math.random() * H * 0.8,
-          vx: 0.6 + Math.random() * 0.8,
-          vy: 0.05 + Math.random() * 0.15,
-          c: shade(),
-        });
-
-    // Move airborne grains; settle them when they land
-    air = air.filter((p) => {
-      p.x += p.vx * gust;
-      p.y += p.vy + Math.sin((p.x + t) / 15) * 0.1;
-      const x = Math.floor(p.x),
-        y = Math.floor(p.y);
-      if (x >= W) return false;
-      if (y < 0) return true;
-      if (y >= H - 1 || grid[(y + 1) * W + x]) {
-        if (!grid[Math.min(y, H - 1) * W + x])
-          grid[Math.min(y, H - 1) * W + x] = p.c;
-        return false;
-      }
-      return true;
-    });
-
-    // Settled sand falls and slides into piles
-    for (let y = H - 2; y >= 0; y--) {
-      for (let x = 0; x < W; x++) {
-        if (!grid[y * W + x]) continue;
-        const below = (y + 1) * W + x;
-        if (!grid[below]) {
-          grid[below] = grid[y * W + x];
-          grid[y * W + x] = 0;
-          continue;
-        }
-        // wind biases slides to the right
-        const dir = Math.random() < 0.7 ? 1 : -1;
-        const nx = x + dir;
-        if (nx >= 0 && nx < W && !grid[below + dir]) {
-          grid[below + dir] = grid[y * W + x];
-          grid[y * W + x] = 0;
-        }
-      }
-    }
-  }
+  const remap = (v: number, a1: number, b1: number, a2: number, b2: number) =>
+    Math.max(0, ((v - a1) * (b2 - a2)) / (b1 - a1) + a2);
 
   function draw() {
-    ctx.clearRect(0, 0, W, H);
-    for (let y = 0; y < H; y++)
-      for (let x = 0; x < W; x++) {
-        const c = grid[y * W + x];
-        if (!c) continue;
-        ctx.fillStyle = SHADES[c];
-        ctx.fillRect(x, y, 1, 1);
+    ctx.clearRect(0, 0, w, h);
+    grains.forEach((g, i) => {
+      g.x += g.dx + g.vx;
+      g.y += g.dy + g.vy;
+      g.vx *= 0.92;
+      g.vy *= 0.92;
+      g.tx += (mouse.x / (STATICITY / g.magnetism) - g.tx) / EASE;
+      g.ty += (mouse.y / (STATICITY / g.magnetism) - g.ty) / EASE;
+
+      const px = g.x + g.tx,
+        py = g.y + g.ty;
+      if (g.dying) {
+        g.alpha *= 0.9;
+        if (g.alpha < 0.01) return (grains[i] = createGrain(true));
+      } else {
+        const edge = Math.min(px, w - px - g.size, py, h - py - g.size);
+        const fade = remap(edge, 0, EDGE_FADE, 0, 1);
+        g.alpha =
+          fade > 1
+            ? Math.min(g.alpha + 0.02, g.targetAlpha)
+            : g.targetAlpha * fade;
       }
-    for (const p of air) {
-      ctx.fillStyle = SHADES[p.c];
-      ctx.fillRect(Math.floor(p.x), Math.floor(p.y), 1, 1);
-    }
+      if (g.x > w + g.size || g.y < -g.size || g.y > h + g.size)
+        return (grains[i] = createGrain(true));
+
+      ctx.globalAlpha = g.alpha;
+      ctx.fillStyle = g.c;
+      ctx.fillRect(px, py, g.size, g.size); // squares = angular grains
+    });
   }
 
   function loop() {
-    step();
     draw();
     requestAnimationFrame(loop);
   }
-  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) loop();
+
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function drawStill() {
+    grains.forEach((g) => (g.alpha = g.targetAlpha));
+    draw();
+  }
+
+  resize();
+  addEventListener("resize", () => {
+    resize();
+    if (still) drawStill();
+  });
+  // The canvas ignores pointer events, so listen on window/body
+  addEventListener("pointermove", (e) => {
+    mouse.x = e.clientX - w / 2;
+    mouse.y = e.clientY - h / 2;
+  });
+  document.body.addEventListener("click", (e) => {
+    for (const g of grains) {
+      const ox = g.x + g.tx - e.clientX,
+        oy = g.y + g.ty - e.clientY;
+      const d = Math.hypot(ox, oy);
+      if (d > CLEAR_RADIUS) continue;
+      const push = (1 - d / CLEAR_RADIUS) * 6;
+      g.vx += (ox / (d || 1)) * push;
+      g.vy += (oy / (d || 1)) * push;
+      g.dying = true;
+    }
+  });
+
+  if (still) drawStill();
+  else loop();
 </script>
