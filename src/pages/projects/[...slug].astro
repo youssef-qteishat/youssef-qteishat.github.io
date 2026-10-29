@@ -13,7 +13,8 @@ export async function getStaticPaths() {
 }
 
 const { entry } = Astro.props;
-const { title, tags, videoId, videoPlatform = "youtube", repoUrl } = entry.data;
+const { title, tags, videoId, videoPlatform = "youtube", repoUrl, deliverablesUrl } =
+  entry.data;
 const embedUrls = {
   youtube: "https://www.youtube-nocookie.com/embed/",
   loom: "https://www.loom.com/embed/",
@@ -45,6 +46,16 @@ const { Content } = await render(entry);
           <h3>GitHub</h3>
           <a href={repoUrl} target="_blank" rel="noopener noreferrer">
             {repoUrl.replace("https://github.com/", "")}
+          </a>
+        </section>
+      )
+    }
+    {
+      deliverablesUrl && (
+        <section>
+          <h3>Deliverables</h3>
+          <a href={deliverablesUrl} target="_blank" rel="noopener noreferrer">
+            View project files
           </a>
         </section>
       )

@@ -20,6 +20,7 @@ const project = defineCollection({
       videoPlatform: z.enum(["youtube", "loom"]).optional(), // Default: YouTube
       videoId: z.string().optional(),
       repoUrl: z.string().optional(),
+      deliverablesUrl: z.string().optional(),
       demoUrl: z.string().optional(),
       tags: z.array(z.string()),
       featured: z.boolean(),
